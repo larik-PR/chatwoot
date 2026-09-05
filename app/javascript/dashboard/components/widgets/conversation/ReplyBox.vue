@@ -56,6 +56,10 @@ import { useMacroExecution } from 'dashboard/composables/useMacroExecution';
 import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { isFileTypeAllowedForChannel } from 'shared/helpers/FileHelper';
+import {
+  getPraxisBridgeErrorMessage,
+  sendPraxisBridgeMessage,
+} from 'dashboard/api/praxisBridge';
 
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
@@ -146,6 +150,9 @@ export default {
       showArticleSearchPopover: false,
       hasRecordedAudio: false,
       copilotAcceptedMessages: {},
+      praxisBridgeError: '',
+      praxisBridgeActionId: '',
+      praxisBridgeActionContent: '',
     };
   },
   computed: {
@@ -252,6 +259,18 @@ export default {
     },
     inbox() {
       return this.$store.getters['inboxes/getInbox'](this.inboxId);
+    },
+    praxisBridgeAttributes() {
+      return {
+        ...this.inbox?.additional_attributes,
+        ...this.inbox?.custom_attributes,
+      };
+    },
+    isPraxisBridgeSendEnabled() {
+      return this.praxisBridgeAttributes.praxis_bridge_send === true;
+    },
+    praxisBridgeSignedContext() {
+      return this.praxisBridgeAttributes.praxis_bridge_signed_context;
     },
     messagePlaceHolder() {
       if (this.isEditorDisabled) {
@@ -539,9 +558,13 @@ export default {
         this.resetRecorderAndClearAttachments();
       }
     },
-    message() {
+    message(message) {
       // Autosave the current message draft.
       this.doAutoSaveDraft();
+      if (message !== this.praxisBridgeActionContent) {
+        this.praxisBridgeActionId = '';
+        this.praxisBridgeError = '';
+      }
     },
     showWhatsappTemplates(isAvailable) {
       if (!isAvailable) this.hideWhatsappTemplatesModal();
@@ -862,12 +885,25 @@ export default {
     hideContentTemplatesModal() {
       this.showContentTemplatesModal = false;
     },
-    confirmOnSendReply() {
+    async confirmOnSendReply() {
       if (this.isReplyButtonDisabled) {
         return;
       }
       if (!this.showMentions) {
         const copilotAcceptedMessage = this.getCopilotAcceptedMessage();
+        if (this.isPraxisBridgeSendEnabled && !this.isPrivate) {
+          const messagePayload = this.getMessagePayload(this.message);
+          const sent = await this.sendPraxisBridgeReply(
+            messagePayload.message,
+            copilotAcceptedMessage
+          );
+          if (!sent) return;
+
+          this.clearEmailField();
+          this.clearMessage();
+          this.hideEmojiPicker();
+          return;
+        }
         const isOnWhatsApp =
           this.isATwilioWhatsAppChannel ||
           this.isAWhatsAppCloudChannel ||
@@ -985,6 +1021,12 @@ export default {
       editorMessage = '',
       copilotAcceptedMessage = ''
     ) {
+      if (this.isPraxisBridgeSendEnabled && !messagePayload.private) {
+        return this.sendPraxisBridgeReply(
+          messagePayload.message || '',
+          copilotAcceptedMessage
+        );
+      }
       try {
         await this.$store.dispatch(
           'createPendingMessageAndSend',
@@ -997,10 +1039,67 @@ export default {
           editorMessage,
           copilotAcceptedMessage,
         });
+        return true;
       } catch (error) {
         const errorMessage =
           error?.response?.data?.error || this.$t('CONVERSATION.MESSAGE_ERROR');
         useAlert(errorMessage);
+        return false;
+      }
+    },
+    async sendPraxisBridgeReply(content, copilotAcceptedMessage = '') {
+      if (this.attachedFiles.length || this.hasRecordedAudio) {
+        this.praxisBridgeError =
+          'Anhänge können über die Praxis-Prüfung noch nicht gesendet werden.';
+        return false;
+      }
+
+      if (
+        !this.praxisBridgeActionId ||
+        this.praxisBridgeActionContent !== content
+      ) {
+        this.praxisBridgeActionId = crypto.randomUUID();
+        this.praxisBridgeActionContent = content;
+      }
+
+      try {
+        const response = await sendPraxisBridgeMessage({
+          actionId: this.praxisBridgeActionId,
+          conversationId: this.currentChat.id,
+          content,
+          signedContext: this.praxisBridgeSignedContext,
+        });
+        const responseData = response.data || {};
+        const wasSent =
+          responseData.message ||
+          responseData.status === 'sent' ||
+          (responseData.status === 'duplicate' &&
+            responseData.outcome === 'sent');
+        if (!wasSent) {
+          this.praxisBridgeError =
+            'Die Nachricht wurde nicht erneut gesendet. Bitte prüfen Sie den Versandstatus.';
+          return false;
+        }
+        if (response.data?.message) {
+          await this.$store.dispatch('addMessage', response.data.message);
+        }
+        const ruleNotices = Array.isArray(responseData.flags)
+          ? responseData.flags.map(flag => flag?.reason).filter(Boolean)
+          : [];
+        this.praxisBridgeError = ruleNotices.join(' ');
+        this.praxisBridgeActionId = '';
+        this.praxisBridgeActionContent = '';
+        emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE);
+        emitter.emit(BUS_EVENTS.MESSAGE_SENT);
+        this.removeFromDraft();
+        this.sendMessageAnalyticsData(false, {
+          editorMessage: content,
+          copilotAcceptedMessage,
+        });
+        return true;
+      } catch (error) {
+        this.praxisBridgeError = getPraxisBridgeErrorMessage(error);
+        return false;
       }
     },
     async onSendWhatsAppReply(messagePayload) {
@@ -1478,6 +1577,15 @@ export default {
         />
       </div>
     </Transition>
+
+    <p
+      v-if="praxisBridgeError"
+      data-testid="praxis-bridge-error"
+      role="alert"
+      class="px-4 pb-2 text-sm text-n-ruby-9"
+    >
+      {{ praxisBridgeError }}
+    </p>
 
     <Transition
       mode="out-in"

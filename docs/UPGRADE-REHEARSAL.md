@@ -42,3 +42,21 @@ After approval, update the pinned tag in the infrastructure repository, repeat
 the backup, migrate, health, and smoke sequence on the GX10 during a maintenance
 window, and retain the prior image and backups until the post-upgrade review is
 complete.
+
+## Praxis send-intercept touchpoints
+
+Recheck these fork-owned files after every upstream upgrade:
+
+- `app/javascript/dashboard/api/praxisBridge.js` — signed, idempotent Bridge
+  request and German blocking-error normalization.
+- `app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue` —
+  public-send interception for inboxes with `praxis_bridge_send=true`.
+- `app/javascript/dashboard/components/widgets/conversation/specs/ReplyBox.spec.js`
+  — bridge routing, blocking, retry, attachment, feature-off, and private-note
+  regression coverage.
+
+The flag defaults off. Before enabling it, verify that the inbox payload also
+provides a fresh `praxis_bridge_signed_context`, the same-origin proxy forwards
+the signed headers to the Bridge, and the synthetic acceptance checks in the
+send-intercept runbook pass. Private notes must continue through Chatwoot's
+native message action.

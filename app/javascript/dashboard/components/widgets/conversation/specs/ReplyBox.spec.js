@@ -124,6 +124,220 @@ const editor = wrapper =>
   wrapper.findComponent({ name: 'WootMessageEditor' }).props();
 
 describe('ReplyBox', () => {
+  describe('Praxis bridge sends', () => {
+    let originalAxios;
+    let axiosMock;
+    const signedContext = {
+      context: 'signed-dashboard-context',
+      signature: `sha256=${'a'.repeat(64)}`,
+    };
+
+    beforeEach(() => {
+      originalAxios = global.axios;
+      axiosMock = { post: vi.fn() };
+      global.axios = axiosMock;
+    });
+
+    afterEach(() => {
+      global.axios = originalAxios;
+    });
+
+    it('routes a flagged public reply through the bridge without native send', async () => {
+      axiosMock.post.mockResolvedValue({
+        status: 200,
+        data: { message: { id: 42, conversation_id: 1 } },
+      });
+      const { wrapper, store } = mountWith({
+        inbox: {
+          channel_type: 'Channel::Api',
+          additional_attributes: {
+            praxis_bridge_send: true,
+            praxis_bridge_signed_context: signedContext,
+          },
+        },
+      });
+      const dispatch = vi.spyOn(store, 'dispatch').mockResolvedValue();
+      wrapper.vm.message = 'Geprüfte Antwort';
+
+      await wrapper.vm.confirmOnSendReply();
+
+      expect(axiosMock.post).toHaveBeenCalledWith(
+        '/api/chatwoot/send',
+        {
+          actionId: expect.stringMatching(/^[a-zA-Z0-9_-]{8,128}$/),
+          conversationId: 1,
+          content: 'Geprüfte Antwort',
+          signedContext,
+        },
+        {
+          headers: {
+            'X-Chatwoot-Dashboard-Context': signedContext.context,
+            'X-Chatwoot-Dashboard-Signature': signedContext.signature,
+          },
+        }
+      );
+      expect(dispatch).not.toHaveBeenCalledWith(
+        'createPendingMessageAndSend',
+        expect.anything()
+      );
+      expect(dispatch).toHaveBeenCalledWith('addMessage', {
+        id: 42,
+        conversation_id: 1,
+      });
+      expect(wrapper.vm.message).toBe('');
+    });
+
+    it('keeps the reply and shows every German block reason inline', async () => {
+      axiosMock.post.mockRejectedValue({
+        response: {
+          status: 422,
+          data: {
+            error: 'send_blocked',
+            flags: [
+              { reason: 'Bitte keine Diagnose versprechen.' },
+              { reason: 'Notfallhinweis ergänzen.' },
+            ],
+          },
+        },
+      });
+      const { wrapper, store } = mountWith({
+        inbox: {
+          channel_type: 'Channel::Api',
+          custom_attributes: {
+            praxis_bridge_send: true,
+            praxis_bridge_signed_context: signedContext,
+          },
+        },
+      });
+      const dispatch = vi.spyOn(store, 'dispatch').mockResolvedValue();
+      wrapper.vm.message = 'Ungeprüfte Antwort';
+
+      await wrapper.vm.confirmOnSendReply();
+
+      expect(dispatch).not.toHaveBeenCalledWith(
+        'createPendingMessageAndSend',
+        expect.anything()
+      );
+      expect(wrapper.vm.message).toBe('Ungeprüfte Antwort');
+      expect(wrapper.get('[data-testid="praxis-bridge-error"]').text()).toBe(
+        'Bitte keine Diagnose versprechen. Notfallhinweis ergänzen.'
+      );
+    });
+
+    it('keeps private notes on the native message action', async () => {
+      const { wrapper, store } = mountWith({
+        inbox: {
+          channel_type: 'Channel::Api',
+          custom_attributes: {
+            praxis_bridge_send: true,
+            praxis_bridge_signed_context: signedContext,
+          },
+        },
+      });
+      const dispatch = vi.spyOn(store, 'dispatch').mockResolvedValue();
+      wrapper.vm.replyType = REPLY_EDITOR_MODES.NOTE;
+      wrapper.vm.message = 'Interne Notiz';
+
+      await wrapper.vm.confirmOnSendReply();
+
+      expect(axiosMock.post).not.toHaveBeenCalled();
+      expect(dispatch).toHaveBeenCalledWith(
+        'createPendingMessageAndSend',
+        expect.objectContaining({ private: true, message: 'Interne Notiz' })
+      );
+    });
+
+    it('keeps public replies native when the inbox flag is off', async () => {
+      const { wrapper, store } = mountWith({
+        inbox: { channel_type: 'Channel::Api', custom_attributes: {} },
+      });
+      const dispatch = vi.spyOn(store, 'dispatch').mockResolvedValue();
+      wrapper.vm.message = 'Normale Antwort';
+
+      await wrapper.vm.confirmOnSendReply();
+
+      expect(axiosMock.post).not.toHaveBeenCalled();
+      expect(dispatch).toHaveBeenCalledWith(
+        'createPendingMessageAndSend',
+        expect.objectContaining({ private: false, message: 'Normale Antwort' })
+      );
+    });
+
+    it('reuses the action id when an unchanged reply is retried', async () => {
+      axiosMock.post.mockRejectedValue(new Error('network unavailable'));
+      const { wrapper, store } = mountWith({
+        inbox: {
+          channel_type: 'Channel::Api',
+          custom_attributes: {
+            praxis_bridge_send: true,
+            praxis_bridge_signed_context: signedContext,
+          },
+        },
+      });
+      vi.spyOn(store, 'dispatch').mockResolvedValue();
+      wrapper.vm.message = 'Antwort mit stabilem Versuch';
+
+      await wrapper.vm.confirmOnSendReply();
+      await wrapper.vm.confirmOnSendReply();
+
+      const firstActionId = axiosMock.post.mock.calls[0][1].actionId;
+      expect(axiosMock.post.mock.calls[1][1].actionId).toBe(firstActionId);
+      expect(wrapper.vm.message).toBe('Antwort mit stabilem Versuch');
+    });
+
+    it('does not clear a duplicate action with a non-sent outcome', async () => {
+      axiosMock.post.mockResolvedValue({
+        status: 200,
+        data: { status: 'duplicate', outcome: 'blocked' },
+      });
+      const { wrapper, store } = mountWith({
+        inbox: {
+          channel_type: 'Channel::Api',
+          custom_attributes: {
+            praxis_bridge_send: true,
+            praxis_bridge_signed_context: signedContext,
+          },
+        },
+      });
+      vi.spyOn(store, 'dispatch').mockResolvedValue();
+      wrapper.vm.message = 'Noch nicht gesendet';
+
+      await wrapper.vm.confirmOnSendReply();
+
+      expect(wrapper.vm.message).toBe('Noch nicht gesendet');
+      expect(
+        wrapper.get('[data-testid="praxis-bridge-error"]').text()
+      ).toContain('nicht erneut gesendet');
+    });
+
+    it('blocks attachment sends instead of falling back to native send', async () => {
+      const { wrapper, store } = mountWith({
+        inbox: {
+          channel_type: 'Channel::Api',
+          custom_attributes: {
+            praxis_bridge_send: true,
+            praxis_bridge_signed_context: signedContext,
+          },
+        },
+      });
+      const dispatch = vi.spyOn(store, 'dispatch').mockResolvedValue();
+      wrapper.vm.attachedFiles = [
+        { resource: { file: new File([], 'x.pdf') } },
+      ];
+
+      await wrapper.vm.confirmOnSendReply();
+
+      expect(axiosMock.post).not.toHaveBeenCalled();
+      expect(dispatch).not.toHaveBeenCalledWith(
+        'createPendingMessageAndSend',
+        expect.anything()
+      );
+      expect(
+        wrapper.get('[data-testid="praxis-bridge-error"]').text()
+      ).toContain('Anhänge');
+    });
+  });
+
   describe('Instagram incident restriction', () => {
     it('opens in note mode and restores only the private-note draft', async () => {
       const { wrapper, store } = mountWith({
