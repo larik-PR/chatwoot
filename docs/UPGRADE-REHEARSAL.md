@@ -115,6 +115,36 @@ Recheck these fork-owned widget files after every upstream upgrade:
 The website snippet remains the stock Chatwoot SDK contract. The Bridge adds
 `content_attributes.praxis_menu_options` only to website-menu messages; do not
 broaden this behavior to Chatwoot's generic `input_select` forms.
+## Fork-owned GitHub Actions policy
+
+After every upstream upgrade, keep only these workflows active in the fork:
+
+- `.github/workflows/publish_praxis_image.yml` — publishes the Praxis CE image
+  on pushes to `praxis` and by manual dispatch.
+- `.github/workflows/run_foss_spec.yml` — runs CE specs, security checks, and
+  backend/frontend lint on pushes to `praxis` and pull requests targeting
+  `praxis`.
+- `.github/workflows/lint_pr.yml` — validates titles for pull requests targeting
+  `praxis`.
+- `.github/workflows/size-limit.yml` — runs the secret-free asset size check for
+  pull requests targeting `praxis`.
+
+The fork removes these inherited upstream operations workflows; reapply these
+removals if an upstream merge restores them:
+
+- `auto-assign-pr.yml`
+- `deploy_check.yml`
+- `frontend-fe.yml`
+- `ghsa-linear-sync.yml`
+- `lock.yml`
+- `logging_percentage_check.yml`
+- `nightly_installer.yml`
+- `publish_codespace_image.yml`
+- `publish_ee_docker.yml`
+- `publish_foss_docker.yml`
+- `run_mfa_spec.yml`
+- `stale.yml`
+- `test_docker_build.yml`
 
 ## Follow-ups
 
