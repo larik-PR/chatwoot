@@ -295,6 +295,14 @@
       "START_AUDIO_RECORDING": "Start audio recording",
       "STOP_AUDIO_RECORDING": "Stop audio recording",
       "COPILOT_THINKING": "Copilot is thinking",
+      "PRAXIS_BRIDGE": {
+        "ATTACHMENTS_UNSUPPORTED": "Attachments cannot yet be sent through the Praxis checks.",
+        "AUTH_EXPIRED": "Authorization has expired. Please try again.",
+        "OUTCOME_UNCERTAIN": "The delivery status is unclear. Check the conversation before sending again.",
+        "SEND_FAILED": "The message was not sent. Check the connection and try again.",
+        "NOT_SENT": "The message was not sent again. Check the delivery status.",
+        "SHADOWED": "Shadow mode: The message was logged, not sent."
+      },
       "EMAIL_HEAD": {
         "TO": "TO",
         "ADD_BCC": "Add bcc",

@@ -1,6 +1,11 @@
 /* global axios */
 
 const PRAXIS_BRIDGE_SEND_URL = '/api/chatwoot/send';
+const praxisBridgeContextUrl = accountId =>
+  `/api/v1/accounts/${accountId}/praxis_bridge/context`;
+
+export const fetchPraxisBridgeContext = accountId =>
+  axios.get(praxisBridgeContextUrl(accountId));
 
 export const sendPraxisBridgeMessage = ({
   actionId,
@@ -10,7 +15,7 @@ export const sendPraxisBridgeMessage = ({
 }) =>
   axios.post(
     PRAXIS_BRIDGE_SEND_URL,
-    { actionId, conversationId, content, signedContext },
+    { actionId, conversationId, content },
     {
       headers: {
         'X-Chatwoot-Dashboard-Context': signedContext?.context,
@@ -19,7 +24,7 @@ export const sendPraxisBridgeMessage = ({
     }
   );
 
-export const getPraxisBridgeErrorMessage = error => {
+export const getPraxisBridgeErrorMessage = (error, messages) => {
   const { data = {}, status } = error?.response || {};
   const reasons = Array.isArray(data.flags)
     ? data.flags.map(flag => flag?.reason).filter(Boolean)
@@ -27,10 +32,10 @@ export const getPraxisBridgeErrorMessage = error => {
 
   if (reasons.length) return reasons.join(' ');
   if (status === 401) {
-    return 'Die Berechtigung ist abgelaufen. Bitte laden Sie die Ansicht neu.';
+    return messages.authExpired;
   }
   if (data.error === 'send_outcome_uncertain') {
-    return 'Versandstatus unklar. Bitte prüfen Sie den Chat vor einem erneuten Senden.';
+    return messages.outcomeUncertain;
   }
-  return 'Die Nachricht wurde nicht gesendet. Bitte prüfen Sie die Verbindung und versuchen Sie es erneut.';
+  return messages.sendFailed;
 };

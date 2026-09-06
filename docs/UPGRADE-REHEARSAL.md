@@ -48,15 +48,26 @@ complete.
 Recheck these fork-owned files after every upstream upgrade:
 
 - `app/javascript/dashboard/api/praxisBridge.js` — signed, idempotent Bridge
-  request and German blocking-error normalization.
+  request, short-lived context fetch, and blocking-error normalization.
 - `app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue` —
   public-send interception for inboxes with `praxis_bridge_send=true`.
 - `app/javascript/dashboard/components/widgets/conversation/specs/ReplyBox.spec.js`
-  — bridge routing, blocking, retry, attachment, feature-off, and private-note
-  regression coverage.
+  — bridge routing, blocking, context retry, scheduled-send, attachment,
+  feature-off, and private-note regression coverage.
+- `app/controllers/api/v1/accounts/praxis_bridge_controller.rb` and
+  `config/routes.rb` — authenticated, short-lived dashboard context signing.
+- `spec/requests/api/v1/accounts/praxis_bridge_context_spec.rb` — context
+  authentication and HMAC contract coverage.
+- `app/javascript/dashboard/i18n/locale/{de,en}/conversation.json` — bridge
+  status and failure messages.
 
-The flag defaults off. Before enabling it, verify that the inbox payload also
-provides a fresh `praxis_bridge_signed_context`, the same-origin proxy forwards
-the signed headers to the Bridge, and the synthetic acceptance checks in the
-send-intercept runbook pass. Private notes must continue through Chatwoot's
-native message action.
+The flag defaults off. Before enabling it, configure the same
+`CHATWOOT_DASHBOARD_SECRET` for Chatwoot and the Bridge, verify that the
+same-origin proxy forwards the signed headers to the Bridge, and run the
+synthetic acceptance checks in the send-intercept runbook. Private notes must
+continue through Chatwoot's native message action.
+
+## Follow-ups
+
+- **Attachments via bridge** — extend the approved-send contract and composer
+  integration before enabling attachments for intercepted inboxes.

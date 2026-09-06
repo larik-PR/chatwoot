@@ -51,6 +51,7 @@ Rails.application.routes.draw do
         end
 
         scope module: :accounts do
+          get 'praxis_bridge/context', to: 'praxis_bridge#context'
           namespace :actions do
             resource :contact_merge, only: [:create]
           end

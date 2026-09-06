@@ -57,6 +57,7 @@ import ConversationResolveAttributesModal from 'dashboard/components-next/Conver
 import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { isFileTypeAllowedForChannel } from 'shared/helpers/FileHelper';
 import {
+  fetchPraxisBridgeContext,
   getPraxisBridgeErrorMessage,
   sendPraxisBridgeMessage,
 } from 'dashboard/api/praxisBridge';
@@ -153,6 +154,7 @@ export default {
       praxisBridgeError: '',
       praxisBridgeActionId: '',
       praxisBridgeActionContent: '',
+      praxisBridgeContext: null,
     };
   },
   computed: {
@@ -268,9 +270,6 @@ export default {
     },
     isPraxisBridgeSendEnabled() {
       return this.praxisBridgeAttributes.praxis_bridge_send === true;
-    },
-    praxisBridgeSignedContext() {
-      return this.praxisBridgeAttributes.praxis_bridge_signed_context;
     },
     messagePlaceHolder() {
       if (this.isEditorDisabled) {
@@ -1049,8 +1048,9 @@ export default {
     },
     async sendPraxisBridgeReply(content, copilotAcceptedMessage = '') {
       if (this.attachedFiles.length || this.hasRecordedAudio) {
-        this.praxisBridgeError =
-          'Anhänge können über die Praxis-Prüfung noch nicht gesendet werden.';
+        this.praxisBridgeError = this.$t(
+          'CONVERSATION.REPLYBOX.PRAXIS_BRIDGE.ATTACHMENTS_UNSUPPORTED'
+        );
         return false;
       }
 
@@ -1063,30 +1063,51 @@ export default {
       }
 
       try {
-        const response = await sendPraxisBridgeMessage({
-          actionId: this.praxisBridgeActionId,
-          conversationId: this.currentChat.id,
-          content,
-          signedContext: this.praxisBridgeSignedContext,
-        });
+        let signedContext = await this.getPraxisBridgeContext();
+        let response;
+        try {
+          response = await sendPraxisBridgeMessage({
+            actionId: this.praxisBridgeActionId,
+            conversationId: this.currentChat.id,
+            content,
+            signedContext,
+          });
+        } catch (error) {
+          if (error?.response?.status !== 401) throw error;
+
+          signedContext = await this.getPraxisBridgeContext(true);
+          response = await sendPraxisBridgeMessage({
+            actionId: this.praxisBridgeActionId,
+            conversationId: this.currentChat.id,
+            content,
+            signedContext,
+          });
+        }
         const responseData = response.data || {};
         const wasSent =
-          responseData.message ||
           responseData.status === 'sent' ||
           (responseData.status === 'duplicate' &&
             responseData.outcome === 'sent');
-        if (!wasSent) {
-          this.praxisBridgeError =
-            'Die Nachricht wurde nicht erneut gesendet. Bitte prüfen Sie den Versandstatus.';
+        const wasShadowed =
+          responseData.status === 'shadowed' ||
+          (responseData.status === 'duplicate' &&
+            responseData.outcome === 'shadowed');
+        if (wasShadowed) {
+          this.praxisBridgeError = this.$t(
+            'CONVERSATION.REPLYBOX.PRAXIS_BRIDGE.SHADOWED'
+          );
+          this.clearMessage();
+        } else if (!wasSent) {
+          this.praxisBridgeError = this.$t(
+            'CONVERSATION.REPLYBOX.PRAXIS_BRIDGE.NOT_SENT'
+          );
           return false;
+        } else {
+          const ruleNotices = Array.isArray(responseData.flags)
+            ? responseData.flags.map(flag => flag?.reason).filter(Boolean)
+            : [];
+          this.praxisBridgeError = ruleNotices.join(' ');
         }
-        if (response.data?.message) {
-          await this.$store.dispatch('addMessage', response.data.message);
-        }
-        const ruleNotices = Array.isArray(responseData.flags)
-          ? responseData.flags.map(flag => flag?.reason).filter(Boolean)
-          : [];
-        this.praxisBridgeError = ruleNotices.join(' ');
         this.praxisBridgeActionId = '';
         this.praxisBridgeActionContent = '';
         emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE);
@@ -1098,9 +1119,33 @@ export default {
         });
         return true;
       } catch (error) {
-        this.praxisBridgeError = getPraxisBridgeErrorMessage(error);
+        this.praxisBridgeError = getPraxisBridgeErrorMessage(error, {
+          authExpired: this.$t(
+            'CONVERSATION.REPLYBOX.PRAXIS_BRIDGE.AUTH_EXPIRED'
+          ),
+          outcomeUncertain: this.$t(
+            'CONVERSATION.REPLYBOX.PRAXIS_BRIDGE.OUTCOME_UNCERTAIN'
+          ),
+          sendFailed: this.$t(
+            'CONVERSATION.REPLYBOX.PRAXIS_BRIDGE.SEND_FAILED'
+          ),
+        });
         return false;
       }
+    },
+    async getPraxisBridgeContext(forceRefresh = false) {
+      const expiresAt = Date.parse(this.praxisBridgeContext?.expiresAt);
+      if (
+        !forceRefresh &&
+        Number.isFinite(expiresAt) &&
+        expiresAt > Date.now() + 60000
+      ) {
+        return this.praxisBridgeContext;
+      }
+
+      const { data } = await fetchPraxisBridgeContext(this.accountId);
+      this.praxisBridgeContext = data;
+      return data;
     },
     async onSendWhatsAppReply(messagePayload) {
       this.sendMessage({
