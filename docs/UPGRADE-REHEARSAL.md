@@ -91,8 +91,12 @@ Recheck these fork-owned widget files after every upstream upgrade:
 - `app/javascript/widget/store/modules/conversationAttributes.js` and
   `app/views/api/v1/widget/conversations/index.json.jbuilder` — staff last-seen
   state used for patient-visible read receipts.
-- `app/javascript/widget/i18n/locale/en.json` — recorder and receipt source
-  strings; non-English catalogs remain Crowdin-owned.
+- `app/javascript/widget/i18n/locale/en.json` and
+  `app/javascript/widget/i18n/locale/de.json` — English and German recorder and
+  receipt strings.
+- `app/javascript/widget/helpers/actionCable.js` and
+  `app/javascript/widget/helpers/specs/actionCable.spec.js` — immediate
+  staff-read timestamp updates when conversation events are available.
 - `app/javascript/widget/components/specs/ChatInputWrap.spec.js`,
   `app/javascript/widget/components/specs/PraxisHeader.spec.js`,
   `app/javascript/widget/components/specs/PraxisMenuChips.spec.js`,
@@ -100,6 +104,8 @@ Recheck these fork-owned widget files after every upstream upgrade:
   `app/javascript/widget/components/specs/PraxisVoiceRecorder.spec.js`, and
   `app/javascript/widget/components/specs/UserMessageAudio.spec.js` — widget
   interaction coverage.
+- `app/javascript/widget/components/PreChat/specs/Form.spec.js` — exact Praxis
+  identity-field labels and contact-route requirement coverage.
 - `app/javascript/widget/store/modules/specs/conversationAttributes/mutations.spec.js`
   — read-state persistence coverage.
 - `app/javascript/widget/views/specs/MessagesPraxisTheme.spec.js` and

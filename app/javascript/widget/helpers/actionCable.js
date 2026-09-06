@@ -24,6 +24,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'conversation.typing_on': this.onTypingOn,
       'conversation.typing_off': this.onTypingOff,
       'conversation.status_changed': this.onStatusChange,
+      'conversation.updated': this.onConversationUpdated,
       'conversation.created': this.onConversationCreated,
       'presence.update': this.onPresenceUpdate,
       'contact.merged': this.onContactMerge,
@@ -53,6 +54,10 @@ class ActionCableConnector extends BaseActionCableConnector {
     if (data.status === 'resolved') {
       this.app.$store.dispatch('campaign/resetCampaign');
     }
+    this.app.$store.dispatch('conversationAttributes/update', data);
+  };
+
+  onConversationUpdated = data => {
     this.app.$store.dispatch('conversationAttributes/update', data);
   };
 

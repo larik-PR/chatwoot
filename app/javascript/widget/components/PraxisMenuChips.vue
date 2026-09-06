@@ -21,15 +21,16 @@ const selectOption = option => {
 
 <template>
   <div :class="PRAXIS_WIDGET_THEME.menu">
-    <button
-      v-for="option in options"
-      :key="option.value"
-      type="button"
-      :class="PRAXIS_WIDGET_THEME.menuOption"
-      :disabled="!!selectedValue"
-      @click="selectOption(option)"
-    >
-      {{ option.title }}
-    </button>
+    <template v-if="!selectedValue">
+      <button
+        v-for="option in options"
+        :key="option.value"
+        type="button"
+        :class="PRAXIS_WIDGET_THEME.menuOption"
+        @click="selectOption(option)"
+      >
+        {{ option.title }}
+      </button>
+    </template>
   </div>
 </template>

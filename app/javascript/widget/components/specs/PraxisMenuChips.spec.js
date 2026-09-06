@@ -37,5 +37,6 @@ describe('Praxis menu chips', () => {
     expect(dispatch).toHaveBeenCalledWith('conversation/sendMessage', {
       content: 'freie_frage',
     });
+    expect(wrapper.findAll('button')).toHaveLength(0);
   });
 });
