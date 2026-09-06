@@ -4,9 +4,10 @@ permissions:
 on:
   push:
     branches:
-      - develop
-      - master
+      - praxis
   pull_request:
+    branches:
+      - praxis
   workflow_dispatch:
 
 jobs:
@@ -133,20 +134,22 @@ jobs:
         run: |
           # Get all spec files and split them using round-robin distribution
           # This ensures slow tests are distributed evenly across all nodes
-          SPEC_FILES=($(find spec -name '*_spec.rb' | sort))
-          TESTS=""
+          mapfile -t SPEC_FILES < <(find spec -name '*_spec.rb' | sort)
+          TESTS=()
 
           for i in "${!SPEC_FILES[@]}"; do
             # Assign spec to this node if: index % total == node_index
-            if [ $(( i % ${{ matrix.ci_node_total }} )) -eq ${{ matrix.ci_node_index }} ]; then
-              TESTS="$TESTS ${SPEC_FILES[$i]}"
+            if (( i % CI_NODE_TOTAL == CI_NODE_INDEX )); then
+              TESTS+=("${SPEC_FILES[$i]}")
             fi
           done
 
-          if [ -n "$TESTS" ]; then
-            bundle exec rspec --profile=10 --format progress --format json --out tmp/rspec_results.json $TESTS
+          if (( ${#TESTS[@]} > 0 )); then
+            bundle exec rspec --profile=10 --format progress --format json --out tmp/rspec_results.json "${TESTS[@]}"
           fi
         env:
+          CI_NODE_INDEX: ${{ matrix.ci_node_index }}
+          CI_NODE_TOTAL: ${{ matrix.ci_node_total }}
           NODE_OPTIONS: --openssl-legacy-provider
 
       - name: Upload test results
