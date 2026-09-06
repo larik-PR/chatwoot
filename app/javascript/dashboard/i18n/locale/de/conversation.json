@@ -257,6 +257,14 @@
       "START_AUDIO_RECORDING": "Audioaufzeichnung starten",
       "STOP_AUDIO_RECORDING": "Audioaufzeichnung stoppen",
       "COPILOT_THINKING": "Copilot denkt",
+      "PRAXIS_BRIDGE": {
+        "ATTACHMENTS_UNSUPPORTED": "Anhänge können über die Praxis-Prüfung noch nicht gesendet werden.",
+        "AUTH_EXPIRED": "Die Berechtigung ist abgelaufen. Bitte versuchen Sie es erneut.",
+        "OUTCOME_UNCERTAIN": "Versandstatus unklar. Bitte prüfen Sie den Chat vor einem erneuten Senden.",
+        "SEND_FAILED": "Die Nachricht wurde nicht gesendet. Bitte prüfen Sie die Verbindung und versuchen Sie es erneut.",
+        "NOT_SENT": "Die Nachricht wurde nicht erneut gesendet. Bitte prüfen Sie den Versandstatus.",
+        "SHADOWED": "Schattenmodus: Nachricht wurde protokolliert, nicht gesendet."
+      },
       "EMAIL_HEAD": {
         "TO": "An",
         "ADD_BCC": "BCC hinzufügen",
