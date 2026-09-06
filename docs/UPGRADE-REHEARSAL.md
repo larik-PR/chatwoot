@@ -67,6 +67,49 @@ same-origin proxy forwards the signed headers to the Bridge, and run the
 synthetic acceptance checks in the send-intercept runbook. Private notes must
 continue through Chatwoot's native message action.
 
+## Praxis website-widget touchpoints
+
+Recheck these fork-owned widget files after every upstream upgrade:
+
+- `app/javascript/widget/theme/praxis.js` — Praxis palette and mobile widget
+  layout classes.
+- `app/javascript/widget/views/Messages.vue` — themed conversation surface and
+  bounded staff-read-state refresh.
+- `app/javascript/widget/components/ChatHeader.vue` — configured practice name,
+  avatar, and branded header treatment.
+- `app/javascript/widget/components/ChatInputWrap.vue` — recorder placement in
+  the existing text and attachment composer.
+- `app/javascript/widget/components/PraxisVoiceRecorder.vue` — press-and-hold
+  MediaRecorder lifecycle, elapsed time, cancel, and audio attachment handoff.
+- `app/javascript/widget/components/PraxisMenuChips.vue` and
+  `app/javascript/widget/components/AgentMessageBubble.vue` — namespaced Praxis
+  menu-chip rendering and selected-value send.
+- `app/javascript/widget/components/AgentMessage.vue`,
+  `app/javascript/widget/components/UserMessage.vue`, and
+  `app/javascript/widget/components/UserMessageBubble.vue` — message times,
+  sent/read ticks, and patient audio playback.
+- `app/javascript/widget/store/modules/conversationAttributes.js` and
+  `app/views/api/v1/widget/conversations/index.json.jbuilder` — staff last-seen
+  state used for patient-visible read receipts.
+- `app/javascript/widget/i18n/locale/en.json` — recorder and receipt source
+  strings; non-English catalogs remain Crowdin-owned.
+- `app/javascript/widget/components/specs/ChatInputWrap.spec.js`,
+  `app/javascript/widget/components/specs/PraxisHeader.spec.js`,
+  `app/javascript/widget/components/specs/PraxisMenuChips.spec.js`,
+  `app/javascript/widget/components/specs/PraxisMessageMeta.spec.js`,
+  `app/javascript/widget/components/specs/PraxisVoiceRecorder.spec.js`, and
+  `app/javascript/widget/components/specs/UserMessageAudio.spec.js` — widget
+  interaction coverage.
+- `app/javascript/widget/store/modules/specs/conversationAttributes/mutations.spec.js`
+  — read-state persistence coverage.
+- `app/javascript/widget/views/specs/MessagesPraxisTheme.spec.js` and
+  `app/javascript/widget/views/specs/__snapshots__/MessagesPraxisTheme.spec.js.snap`
+  — theme regression coverage.
+
+The website snippet remains the stock Chatwoot SDK contract. The Bridge adds
+`content_attributes.praxis_menu_options` only to website-menu messages; do not
+broaden this behavior to Chatwoot's generic `input_select` forms.
+
 ## Follow-ups
 
 - **Attachments via bridge** — extend the approved-send contract and composer

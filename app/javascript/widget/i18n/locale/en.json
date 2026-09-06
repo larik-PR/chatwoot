@@ -60,6 +60,15 @@
   "POWERED_BY": "Powered by Chatwoot",
   "EMAIL_PLACEHOLDER": "Please enter your email",
   "CHAT_PLACEHOLDER": "Type your message",
+  "VOICE_RECORDER": {
+    "START": "Sprachnachricht aufnehmen",
+    "STOP": "Aufnahme beenden",
+    "CANCEL": "Aufnahme verwerfen"
+  },
+  "MESSAGE_STATUS": {
+    "SENT": "Gesendet",
+    "READ": "Gelesen"
+  },
   "TODAY": "Today",
   "YESTERDAY": "Yesterday",
   "PRE_CHAT_FORM": {
