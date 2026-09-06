@@ -45,6 +45,7 @@ export default {
   computed: {
     ...mapGetters({
       widgetColor: 'appConfig/getWidgetColor',
+      conversationAttributes: 'conversationAttributes/getConversationParams',
     }),
 
     isInProgress() {
@@ -62,6 +63,12 @@ export default {
     isFailed() {
       const { status = '' } = this.message;
       return status === 'failed';
+    },
+    deliveryStatus() {
+      const agentLastSeenAt = this.conversationAttributes?.agentLastSeenAt || 0;
+      return agentLastSeenAt >= this.message.created_at
+        ? 'read'
+        : this.message.status;
     },
     errorMessage() {
       const { meta } = this.message;
@@ -124,7 +131,8 @@ export default {
             <UserMessageBubble
               v-if="showTextBubble"
               :message="message.content"
-              :status="message.status"
+              :status="deliveryStatus"
+              :readable-time="readableTime"
               :widget-color="widgetColor"
             />
             <div
@@ -150,6 +158,14 @@ export default {
                   :readable-time="readableTime"
                   @error="onVideoLoadError"
                 />
+
+                <audio
+                  v-else-if="attachment.file_type === 'audio'"
+                  controls
+                  class="h-10 dark:invert"
+                >
+                  <source :src="attachment.data_url" />
+                </audio>
 
                 <FileBubble
                   v-else

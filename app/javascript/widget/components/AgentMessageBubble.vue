@@ -7,6 +7,7 @@ import ChatArticle from './template/Article.vue';
 import EmailInput from './template/EmailInput.vue';
 import CustomerSatisfaction from 'shared/components/CustomerSatisfaction.vue';
 import IntegrationCard from './template/IntegrationCard.vue';
+import PraxisMenuChips from './PraxisMenuChips.vue';
 
 export default {
   name: 'AgentMessageBubble',
@@ -18,6 +19,7 @@ export default {
     EmailInput,
     CustomerSatisfaction,
     IntegrationCard,
+    PraxisMenuChips,
   },
   props: {
     message: { type: String, default: null },
@@ -26,7 +28,11 @@ export default {
     messageId: { type: Number, default: null },
     messageContentAttributes: {
       type: Object,
-      default: () => {},
+      default: () => ({}),
+    },
+    readableTime: {
+      type: String,
+      default: '',
     },
   },
   setup() {
@@ -64,6 +70,9 @@ export default {
     isIntegrations() {
       return this.contentType === 'integrations';
     },
+    praxisMenuOptions() {
+      return this.messageContentAttributes?.praxis_menu_options || [];
+    },
   },
   methods: {
     onResponse(messageResponse) {
@@ -83,6 +92,11 @@ export default {
       this.onResponse({
         submittedValues: formValuesAsArray,
         messageId: this.messageId,
+      });
+    },
+    onPraxisOptionSelect(option) {
+      this.$store.dispatch('conversation/sendMessage', {
+        content: option.value,
       });
     },
   },
@@ -112,6 +126,17 @@ export default {
         :message-id="messageId"
         :meeting-data="messageContentAttributes.data"
       />
+      <PraxisMenuChips
+        v-if="praxisMenuOptions.length"
+        :options="praxisMenuOptions"
+        @option-select="onPraxisOptionSelect"
+      />
+      <time
+        v-if="readableTime"
+        class="mt-1 block text-end text-[0.6875rem] leading-none text-n-slate-10"
+      >
+        {{ readableTime }}
+      </time>
     </div>
     <div v-if="isOptions">
       <ChatOptions

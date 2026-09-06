@@ -40,6 +40,24 @@ describe('Widget ActionCableConnector', () => {
     );
   });
 
+  it('uses conversation websocket updates for staff read receipts', () => {
+    const update = {
+      id: 7,
+      status: 'open',
+      agent_last_seen_at: 1_788_669_000,
+    };
+
+    expect(connector.events['conversation.updated']).toBe(
+      connector.onConversationUpdated
+    );
+    connector.onConversationUpdated(update);
+
+    expect(mockDispatch).toHaveBeenCalledWith(
+      'conversationAttributes/update',
+      update
+    );
+  });
+
   it('re-fetches conversation attributes on reconnect so a status change missed while disconnected is reflected', () => {
     connector.onReconnect();
 

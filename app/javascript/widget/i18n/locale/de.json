@@ -60,6 +60,17 @@
   "POWERED_BY": "Unterstützt von Chatwoot",
   "EMAIL_PLACEHOLDER": "Bitte geben Sie Ihre E-Mail-Adresse ein",
   "CHAT_PLACEHOLDER": "Schreiben Sie Ihre Nachricht",
+  "VOICE_RECORDER": {
+    "START": "Sprachnachricht aufnehmen",
+    "STOP": "Aufnahme beenden",
+    "CANCEL": "Aufnahme verwerfen",
+    "HINT": "Bis zu 2 Minuten",
+    "PERMISSION_DENIED": "Mikrofon nicht freigegeben"
+  },
+  "MESSAGE_STATUS": {
+    "SENT": "Gesendet",
+    "READ": "Gelesen"
+  },
   "TODAY": "Heute",
   "YESTERDAY": "Gestern",
   "PRE_CHAT_FORM": {

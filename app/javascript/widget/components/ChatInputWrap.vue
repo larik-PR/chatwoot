@@ -7,6 +7,7 @@ import ChatSendButton from 'widget/components/ChatSendButton.vue';
 import { useAttachments } from '../composables/useAttachments';
 import FluentIcon from 'shared/components/FluentIcon/Index.vue';
 import ResizableTextArea from 'shared/components/ResizableTextArea.vue';
+import PraxisVoiceRecorder from 'widget/components/PraxisVoiceRecorder.vue';
 
 const EmojiPicker = defineAsyncComponent(
   () => import('shared/components/emoji/EmojiPicker.vue')
@@ -20,6 +21,7 @@ export default {
     EmojiPicker,
     FluentIcon,
     ResizableTextArea,
+    PraxisVoiceRecorder,
   },
   props: {
     onSendMessage: {
@@ -62,6 +64,9 @@ export default {
     },
     showSendButton() {
       return this.userInput.length > 0;
+    },
+    showVoiceRecorder() {
+      return this.canHandleAttachments && this.userInput.length === 0;
     },
   },
   watch: {
@@ -158,6 +163,10 @@ export default {
       <ChatAttachmentButton
         v-if="showAttachment"
         class="text-n-slate-12"
+        :on-attach="onSendAttachment"
+      />
+      <PraxisVoiceRecorder
+        v-if="showVoiceRecorder"
         :on-attach="onSendAttachment"
       />
       <button

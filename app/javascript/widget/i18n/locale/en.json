@@ -60,6 +60,17 @@
   "POWERED_BY": "Powered by Chatwoot",
   "EMAIL_PLACEHOLDER": "Please enter your email",
   "CHAT_PLACEHOLDER": "Type your message",
+  "VOICE_RECORDER": {
+    "START": "Record voice message",
+    "STOP": "Stop recording",
+    "CANCEL": "Discard recording",
+    "HINT": "Up to 2 minutes",
+    "PERMISSION_DENIED": "Microphone permission not granted"
+  },
+  "MESSAGE_STATUS": {
+    "SENT": "Sent",
+    "READ": "Read"
+  },
   "TODAY": "Today",
   "YESTERDAY": "Yesterday",
   "PRE_CHAT_FORM": {

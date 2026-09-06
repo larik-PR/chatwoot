@@ -13,6 +13,14 @@ export default {
       type: String,
       default: '',
     },
+    readableTime: {
+      type: String,
+      default: '',
+    },
+    status: {
+      type: String,
+      default: '',
+    },
   },
   setup() {
     const { formatMessage } = useMessageFormatter();
@@ -30,10 +38,33 @@ export default {
 
 <template>
   <div
-    v-dompurify-html="formatMessage(message, false)"
     class="chat-bubble user"
     :style="{ background: widgetColor, color: textColor }"
-  />
+  >
+    <div v-dompurify-html="formatMessage(message, false)" />
+    <div
+      v-if="readableTime"
+      class="mt-1 flex items-center justify-end gap-1 text-[0.6875rem] leading-none text-white/70"
+    >
+      <time>{{ readableTime }}</time>
+      <span
+        data-testid="message-receipt"
+        :class="[
+          status === 'read'
+            ? 'i-ph-checks-bold text-[#53bdeb]'
+            : 'i-ph-check-bold',
+        ]"
+        aria-hidden="true"
+      />
+      <span class="sr-only">
+        {{
+          status === 'read'
+            ? $t('MESSAGE_STATUS.READ')
+            : $t('MESSAGE_STATUS.SENT')
+        }}
+      </span>
+    </div>
+  </div>
 </template>
 
 <style lang="scss" scoped>
